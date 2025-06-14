@@ -1,0 +1,122 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}仪表板{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 统计卡片 -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">总用户数</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_users }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">总商品数</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_items }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-box fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">总交易数</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_transactions }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-exchange-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">本周新用户</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ new_users_week }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-plus fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 最近商品 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">最近发布的商品</h6>
+            </div>
+            <div class="card-body">
+                {% if recent_items %}
+                    {% for item in recent_items %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">{{ item.title }}</h6>
+                            <small class="text-muted">{{ item.seller.username }} - {{ item.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                        <span class="badge bg-primary">¥{{ item.price }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">暂无商品</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 最近交易 -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">最近交易</h6>
+            </div>
+            <div class="card-body">
+                {% if recent_transactions %}
+                    {% for transaction in recent_transactions %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">{{ transaction.item.title }}</h6>
+                            <small class="text-muted">{{ transaction.buyer.username }} → {{ transaction.seller_user.username }}</small>
+                        </div>
+                        <span class="badge bg-{{ 'success' if transaction.status == 'completed' else 'warning' }}">{{ transaction.status }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">暂无交易</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

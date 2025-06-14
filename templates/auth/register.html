@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}用户注册{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="mb-4 text-center">创建您的账户</h2>
+                <!-- 在第11行附近修改 -->
+                <p class="text-muted text-center mb-4">加入校园二手交易平台</p>
+                
+                <form method="POST" action="{{ url_for('auth.register') }}" novalidate id="registerForm">
+                    {{ form.hidden_tag() }}
+                    
+                    <!-- 用户名 -->
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), placeholder="请输入用户名") }}
+                        {% if form.username.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.username.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">用户名将作为您在平台上的唯一标识</div>
+                    </div>
+                    
+                    <!-- 邮箱 -->
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="请输入邮箱地址") }}
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.email.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">邮箱用于账户验证和密码重置</div>
+                    </div>
+                    
+                    <!-- 密码 -->
+                    <div class="mb-3">
+                        {{ form.password.label(class="form-label") }}
+                        <div class="input-group">
+                            {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="请输入密码", id="password") }}
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <i class="fas fa-eye" id="passwordIcon"></i>
+                            </button>
+                        </div>
+                        {% if form.password.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.password.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">密码长度至少8位，建议包含字母、数字和特殊字符</div>
+                    </div>
+                    
+                    <!-- 确认密码 -->
+                    <div class="mb-3">
+                        {{ form.confirm_password.label(class="form-label") }}
+                        <div class="input-group">
+                            {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="请再次输入密码", id="confirmPassword") }}
+                            <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                                <i class="fas fa-eye" id="confirmPasswordIcon"></i>
+                            </button>
+                        </div>
+                        {% if form.confirm_password.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.confirm_password.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                        <div id="passwordMatch" class="form-text"></div>
+                    </div>
+                    
+                    <!-- 安全提示 -->
+                    <div class="alert alert-info" role="alert">
+                        <h6 class="alert-heading"><i class="fas fa-shield-alt"></i> 安全提示</h6>
+                        <p class="mb-0">注册成功后，系统将为您生成RSA密钥对。请务必下载并妥善保管您的私钥，它是您进行安全交易的重要凭证。</p>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-primary btn-block", id="submitBtn") }}
+                    </div>
+                </form>
+                
+                <div class="mt-3 text-center">
+                    <p class="mb-0">已经有账户了？ <a href="{{ url_for('auth.login') }}" class="text-decoration-none">点此登录</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head_extra %}
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+// 密码显示/隐藏切换
+function togglePasswordVisibility(inputId, iconId) {
+    const passwordInput = document.getElementById(inputId);
+    const passwordIcon = document.getElementById(iconId);
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        passwordIcon.classList.remove('fa-eye');
+        passwordIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        passwordIcon.classList.remove('fa-eye-slash');
+        passwordIcon.classList.add('fa-eye');
+    }
+}
+
+// 密码显示切换事件
+document.getElementById('togglePassword').addEventListener('click', function() {
+    togglePasswordVisibility('password', 'passwordIcon');
+});
+
+document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
+    togglePasswordVisibility('confirmPassword', 'confirmPasswordIcon');
+});
+
+// 密码匹配验证
+function checkPasswordMatch() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const matchDiv = document.getElementById('passwordMatch');
+    
+    if (confirmPassword === '') {
+        matchDiv.textContent = '';
+        matchDiv.className = 'form-text';
+        return;
+    }
+    
+    if (password === confirmPassword) {
+        matchDiv.textContent = '✓ 密码匹配';
+        matchDiv.className = 'form-text text-success';
+    } else {
+        matchDiv.textContent = '✗ 密码不匹配';
+        matchDiv.className = 'form-text text-danger';
+    }
+}
+
+// 密码匹配检查事件
+document.getElementById('password').addEventListener('input', checkPasswordMatch);
+document.getElementById('confirmPassword').addEventListener('input', checkPasswordMatch);
+
+// 表单提交前验证
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (password !== confirmPassword) {
+        e.preventDefault();
+        alert('密码和确认密码不匹配，请检查后重试。');
+        return false;
+    }
+    
+    // 显示加载状态
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 注册中...';
+});
+
+// 实时表单验证
+function validateField(fieldId, validationFn, errorMsg) {
+    const field = document.getElementById(fieldId);
+    if (field) {
+        field.addEventListener('blur', function() {
+            if (this.value && !validationFn(this.value)) {
+                this.classList.add('is-invalid');
+                let feedback = this.parentNode.querySelector('.invalid-feedback');
+                if (!feedback) {
+                    feedback = document.createElement('div');
+                    feedback.className = 'invalid-feedback';
+                    this.parentNode.appendChild(feedback);
+                }
+                feedback.textContent = errorMsg;
+            } else {
+                this.classList.remove('is-invalid');
+            }
+        });
+        
+        field.addEventListener('input', function() {
+            if (this.classList.contains('is-invalid') && validationFn(this.value)) {
+                this.classList.remove('is-invalid');
+            }
+        });
+    }
+}
+
+// 邮箱格式验证
+validateField('email', function(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}, '请输入有效的邮箱地址');
+
+// 用户名验证（3-20个字符，字母数字下划线）
+validateField('username', function(username) {
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    return usernameRegex.test(username);
+}, '用户名应为3-20个字符，只能包含字母、数字和下划线');
+
+// 密码强度验证
+validateField('password', function(password) {
+    return password.length >= 8;
+}, '密码长度至少为8位');
+</script>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}{{ legend }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2 class="mb-4">{{ legend }}</h2>
+        <form method="POST" action="" enctype="multipart/form-data" novalidate>
+            {{ form.hidden_tag() }}
+            
+            <!-- 标题 -->
+            <div class="mb-3">
+                {{ form.title.label(class="form-label") }}
+                {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else "")) }}
+                {% if form.title.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.title.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- 描述 -->
+            <div class="mb-3">
+                {{ form.description.label(class="form-label") }}
+                {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows=5) }}
+                {% if form.description.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.description.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- 价格 -->
+            <div class="mb-3">
+                {{ form.price.label(class="form-label") }}
+                {{ form.price(class="form-control" + (" is-invalid" if form.price.errors else ""), placeholder="例如: 50.00") }}
+                {% if form.price.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.price.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- 商品图片 -->
+            <div class="mb-3">
+                {{ form.image_file.label(class="form-label") }}
+                {{ form.image_file(class="form-control" + (" is-invalid" if form.image_file.errors else "")) }}
+                {% if form.image_file.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.image_file.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+                {% if item and item.image_filename %}
+                    <div class="mt-2">
+                        <p class="form-text">当前图片: <img src="{{ url_for('static', filename='uploads/' + item.image_filename) }}" alt="当前商品图片" style="max-height: 100px; max-width: 100px;"> (上传新图片将替换当前图片)</p>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- 提交按钮 -->
+            <div class="d-grid gap-2">
+                {{ form.submit(class="btn btn-primary btn-block") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

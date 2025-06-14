@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}与 {{ other_user.username }} 的对话{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- 聊天头部 -->
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <a href="{{ url_for('messages.conversations') }}" class="btn btn-outline-light btn-sm me-3">
+                                <i class="fas fa-arrow-left"></i> 返回
+                            </a>
+                            <div>
+                                <h5 class="mb-0">
+                                    <i class="fas fa-user-circle me-2"></i>{{ other_user.username }}
+                                </h5>
+                                {% if item %}
+                                <small class="text-light">
+                                    <i class="fas fa-tag"></i> 关于商品：{{ item.title }}
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 聊天消息区域 -->
+            <div class="card">
+                <div class="card-body" style="height: 400px; overflow-y: auto;" id="chat-messages">
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="mb-3 {% if message.sender_id == current_user.id %}text-end{% endif %}">
+                            <div class="d-inline-block p-3 rounded {% if message.sender_id == current_user.id %}bg-primary text-white{% else %}bg-light{% endif %}" style="max-width: 70%;">
+                                <div class="message-content">{{ message.content }}</div>
+                                <small class="{% if message.sender_id == current_user.id %}text-light{% else %}text-muted{% endif %} d-block mt-1">
+                                    {{ message.created_at.strftime('%m-%d %H:%M') }}
+                                    {% if message.sender_id == current_user.id and message.is_read %}
+                                    <i class="fas fa-check-double ms-1"></i>
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-comments fa-3x mb-3"></i>
+                            <p>还没有消息，开始对话吧！</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- 发送消息表单 -->
+                <div class="card-footer">
+                    <form id="message-form" method="POST" action="{{ url_for('messages.send_message') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" name="receiver_id" value="{{ other_user.id }}">
+                        {% if item %}
+                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                        {% endif %}
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="content" placeholder="输入消息..." required autocomplete="off">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-paper-plane"></i> 发送
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 自动滚动到最新消息
+document.addEventListener('DOMContentLoaded', function() {
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+</script>
+{% endblock %}

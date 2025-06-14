@@ -1,0 +1,315 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}用户管理{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>用户管理</h3>
+    <div>
+        <span class="badge bg-primary">总用户数: {{ users.total }}</span>
+    </div>
+</div>
+
+<!-- 用户列表 -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">用户列表</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>用户名</th>
+                        <th>邮箱</th>
+                        <th>注册时间</th>
+                        <th>管理员</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users.items %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm me-2">
+                                    <div class="avatar-title bg-primary rounded-circle">
+                                        {{ user.username[0].upper() }}
+                                    </div>
+                                </div>
+                                <strong>{{ user.username }}</strong>
+                            </div>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else '-' }}</td>
+                        <td>
+                            {% if user.is_admin %}
+                                <span class="badge bg-success">是</span>
+                            {% else %}
+                                <span class="badge bg-secondary">否</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-success">正常</span>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                {% if user.id != current_user.id %}
+                                    <button type="button" 
+                                            class="btn btn-sm {{ 'btn-warning' if user.is_admin else 'btn-success' }} toggle-admin-btn"
+                                            data-user-id="{{ user.id }}"
+                                            data-username="{{ user.username }}"
+                                            data-is-admin="{{ user.is_admin|lower }}">
+                                        <i class="fas {{ 'fa-user-minus' if user.is_admin else 'fa-user-plus' }}"></i>
+                                        {{ '取消管理员' if user.is_admin else '设为管理员' }}
+                                    </button>
+                                    {% if not user.is_admin %}
+                                    <button type="button" 
+                                            class="btn btn-sm btn-danger delete-user-btn"
+                                            data-user-id="{{ user.id }}"
+                                            data-username="{{ user.username }}"
+                                            title="删除用户">
+                                        <i class="fas fa-trash"></i>
+                                        删除
+                                    </button>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-info">当前用户</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 分页 -->
+{% if users.pages > 1 %}
+<nav aria-label="用户列表分页" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if users.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.manage_users', page=users.prev_num) }}">
+                    <i class="fas fa-chevron-left"></i> 上一页
+                </a>
+            </li>
+        {% endif %}
+        
+        {% for page_num in users.iter_pages() %}
+            {% if page_num %}
+                {% if page_num != users.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.manage_users', page=page_num) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                {% endif %}
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">…</span>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if users.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.manage_users', page=users.next_num) }}">
+                    下一页 <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- 确认模态框 -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认操作</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmBtn">确认</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- 删除用户确认模态框 -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认删除用户</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>警告：</strong>此操作不可撤销！
+                </div>
+                <p id="deleteUserMessage"></p>
+                <p class="text-muted small">
+                    删除用户将同时删除：
+                    <ul>
+                        <li>用户发布的所有商品</li>
+                        <li>用户参与的所有交易记录</li>
+                        <li>用户的所有消息和对话</li>
+                        <li>用户上传的图片文件</li>
+                    </ul>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteUserBtn">
+                    <i class="fas fa-trash"></i> 确认删除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+}
+
+.avatar-title {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    let currentUserId = null;
+    let currentAction = null;
+    
+    // 切换管理员权限
+    $('.toggle-admin-btn').click(function() {
+        currentUserId = $(this).data('user-id');
+        const username = $(this).data('username');
+        const isAdmin = $(this).data('is-admin');
+        
+        currentAction = isAdmin ? 'remove' : 'add';
+        const actionText = isAdmin ? '取消管理员权限' : '设置为管理员';
+        
+        $('#confirmMessage').text(`确定要为用户 "${username}" ${actionText}吗？`);
+        $('#confirmModal').modal('show');
+    });
+    
+    // 删除用户
+    $('.delete-user-btn').click(function() {
+        currentUserId = $(this).data('user-id');
+        const username = $(this).data('username');
+        
+        $('#deleteUserMessage').text(`确定要删除用户 "${username}" 吗？`);
+        $('#deleteUserModal').modal('show');
+    });
+    
+    // 确认切换管理员权限
+    $('#confirmBtn').click(function() {
+        if (currentUserId) {
+            $.ajax({
+                url: `/admin/users/${currentUserId}/toggle_admin`,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('meta[name=csrf-token]').attr('content')
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showAlert('success', response.message);
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        showAlert('danger', response.message);
+                    }
+                },
+                error: function() {
+                    showAlert('danger', '操作失败，请稍后重试');
+                }
+            });
+        }
+        $('#confirmModal').modal('hide');
+    });
+    
+    // 确认删除用户
+    $('#confirmDeleteUserBtn').click(function() {
+        if (currentUserId) {
+            $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> 删除中...');
+            
+            $.ajax({
+                url: `/admin/users/${currentUserId}/delete`,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('meta[name=csrf-token]').attr('content')
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showAlert('success', response.message);
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showAlert('danger', response.message);
+                    }
+                },
+                error: function() {
+                    showAlert('danger', '删除用户失败，请稍后重试');
+                },
+                complete: function() {
+                    $('#confirmDeleteUserBtn').prop('disabled', false).html('<i class="fas fa-trash"></i> 确认删除');
+                }
+            });
+        }
+        $('#deleteUserModal').modal('hide');
+    });
+    
+    // 显示警告消息
+    function showAlert(type, message) {
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        $('.container-fluid .row main').prepend(alertHtml);
+    }
+});
+</script>
+{% endblock %}

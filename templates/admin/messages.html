@@ -1,0 +1,448 @@
+{% extends "admin/base.html" %}
+
+{% block title %}消息管理 - 管理员后台{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>消息管理</h2>
+                <div class="d-flex gap-2">
+                    <select class="form-select" id="statusFilter" style="width: auto;">
+                        <option value="">全部状态</option>
+                        <option value="active">活跃对话</option>
+                        <option value="inactive">非活跃对话</option>
+                    </select>
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" class="form-control" id="searchInput" placeholder="搜索用户名...">
+                        <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 统计信息 -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">总对话数</h6>
+                                    <h4>{{ conversations.total }}</h4>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-comments fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">活跃对话</h6>
+                                    <h4 id="activeCount">-</h4>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-comment-dots fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">今日新对话</h6>
+                                    <h4 id="todayCount">-</h4>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-plus-circle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">总消息数</h6>
+                                    <h4 id="totalMessages">-</h4>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-envelope fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 对话列表 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">对话列表</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>对话ID</th>
+                                    <th>参与用户</th>
+                                    <th>关联商品</th>
+                                    <th>最后消息时间</th>
+                                    <th>消息数量</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for conversation in conversations.items %}
+                                <tr>
+                                    <td>{{ conversation.id }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2">
+                                                <i class="fas fa-user-circle fa-lg text-primary"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ conversation.user1.username }}</div>
+                                                <small class="text-muted">用户1</small>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center mt-1">
+                                            <div class="me-2">
+                                                <i class="fas fa-user-circle fa-lg text-success"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ conversation.user2.username }}</div>
+                                                <small class="text-muted">用户2</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if conversation.item %}
+                                        <div class="d-flex align-items-center">
+                                            {% if conversation.item.image_filename %}
+                                            <img src="{{ url_for('static', filename='uploads/' + conversation.item.image_filename) }}" alt="商品图片" 
+                                                 class="rounded me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                            {% else %}
+                                            <div class="bg-light rounded me-2 d-flex align-items-center justify-content-center" 
+                                                 style="width: 40px; height: 40px;">
+                                                <i class="fas fa-image text-muted"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold">{{ conversation.item.title[:20] }}{% if conversation.item.title|length > 20 %}...{% endif %}</div>
+                                                <small class="text-muted">¥{{ "%.2f"|format(conversation.item.price) }}</small>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">商品已删除</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div>{{ conversation.updated_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                                        <small class="text-muted">{{ moment(conversation.updated_at).fromNow() if moment else '' }}</small>
+                                    </td>
+                                    <td>
+                                        {% set message_count = conversation.user1.sent_messages|selectattr('receiver_id', 'equalto', conversation.user2_id)|list|length + conversation.user2.sent_messages|selectattr('receiver_id', 'equalto', conversation.user1_id)|list|length %}
+                                        <span class="badge bg-primary rounded-pill">{{ message_count }}</span>
+                                    </td>
+                                    <td>
+                                        {% set last_message_time = conversation.updated_at %}
+                                        {% set hours_since_last = (moment().utc() - last_message_time).total_seconds() / 3600 if moment else 24 %}
+                                        {% if hours_since_last < 24 %}
+                                        <span class="badge bg-success">活跃</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">非活跃</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    onclick="viewConversation({{ conversation.id }})" 
+                                                    data-bs-toggle="tooltip" title="查看对话">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="deleteConversation({{ conversation.id }})" 
+                                                    data-bs-toggle="tooltip" title="删除对话">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分页 -->
+            {% if conversations.pages > 1 %}
+            <nav aria-label="对话分页" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if conversations.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.manage_messages', page=conversations.prev_num) }}">
+                            <i class="fas fa-chevron-left"></i> 上一页
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in conversations.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != conversations.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin.manage_messages', page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if conversations.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.manage_messages', page=conversations.next_num) }}">
+                            下一页 <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 查看对话模态框 -->
+<div class="modal fade" id="conversationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">对话详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="conversationContent">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 初始化工具提示
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+})
+
+// 查看对话详情
+function viewConversation(conversationId) {
+    const modal = new bootstrap.Modal(document.getElementById('conversationModal'));
+    const content = document.getElementById('conversationContent');
+    
+    // 显示加载状态
+    content.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // 获取真实的对话详情
+    fetch(`/admin/conversations/${conversationId}/details`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const conversation = data.conversation;
+                let messagesHtml = '';
+                
+                // 生成消息列表
+                conversation.messages.forEach(message => {
+                    const isUser1 = message.sender_id === conversation.user1.id;
+                    const senderName = message.sender_name;
+                    const bgClass = isUser1 ? 'bg-light' : 'bg-primary text-white';
+                    const iconClass = isUser1 ? 'text-primary' : 'text-success';
+                    
+                    messagesHtml += `
+                        <div class="message mb-3">
+                            <div class="d-flex">
+                                <div class="me-2">
+                                    <i class="fas fa-user-circle fa-lg ${iconClass}"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>${senderName}</strong>
+                                        <small class="text-muted">${message.created_at}</small>
+                                    </div>
+                                    <div class="${bgClass} p-2 rounded mt-1">
+                                        ${message.content}
+                                    </div>
+                                    ${!message.is_read ? '<small class="text-warning"><i class="fas fa-circle"></i> 未读</small>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                if (conversation.messages.length === 0) {
+                    messagesHtml = '<div class="text-center text-muted">暂无消息</div>';
+                }
+                
+                content.innerHTML = `
+                    <div class="conversation-messages" style="max-height: 400px; overflow-y: auto;">
+                        ${messagesHtml}
+                    </div>
+                    
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <h6>对话信息</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>对话ID:</strong> ${conversation.id}<br>
+                                <strong>参与用户:</strong> ${conversation.user1.username} & ${conversation.user2.username}<br>
+                                <strong>创建时间:</strong> ${conversation.created_at}<br>
+                                <strong>最后更新:</strong> ${conversation.updated_at}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>消息总数:</strong> ${conversation.message_count}<br>
+                                <strong>关联商品:</strong> ${conversation.item ? conversation.item.title : '无关联商品'}<br>
+                                ${conversation.item ? `<strong>商品价格:</strong> ¥${conversation.item.price.toFixed(2)}` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                content.innerHTML = '<div class="alert alert-danger">加载对话详情失败</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            content.innerHTML = '<div class="alert alert-danger">加载对话详情时发生错误</div>';
+        });
+}
+
+// 删除对话
+function deleteConversation(conversationId) {
+    if (confirm('确定要删除这个对话吗？此操作不可恢复！')) {
+        // 这里应该发送AJAX请求到后端删除对话
+        fetch(`/admin/conversations/${conversationId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 显示成功消息
+                showAlert('success', data.message);
+                // 刷新页面
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showAlert('danger', data.message || '删除失败');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', '删除失败，请稍后重试');
+        });
+    }
+}
+
+// 显示警告消息
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // 3秒后自动消失
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
+}
+
+// 搜索功能
+document.getElementById('searchBtn').addEventListener('click', function() {
+    const searchTerm = document.getElementById('searchInput').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    
+    // 构建查询参数
+    const params = new URLSearchParams();
+    if (searchTerm) params.append('search', searchTerm);
+    if (statusFilter) params.append('status', statusFilter);
+    
+    // 重定向到带参数的URL
+    window.location.href = `{{ url_for('admin.manage_messages') }}?${params.toString()}`;
+});
+
+// 回车搜索
+document.getElementById('searchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        document.getElementById('searchBtn').click();
+    }
+});
+
+// 状态筛选
+document.getElementById('statusFilter').addEventListener('change', function() {
+    document.getElementById('searchBtn').click();
+});
+
+// 加载统计数据
+function loadStatistics() {
+    // 模拟统计数据（实际应该从后端API获取）
+    setTimeout(() => {
+        document.getElementById('activeCount').textContent = '{{ conversations.items|selectattr("updated_at")|list|length }}';
+        document.getElementById('todayCount').textContent = Math.floor(Math.random() * 10) + 1;
+        document.getElementById('totalMessages').textContent = '{{ total_messages }}';
+    }, 500);
+}
+
+// 页面加载完成后执行
+document.addEventListener('DOMContentLoaded', function() {
+    loadStatistics();
+});
+</script>
+{% endblock %}

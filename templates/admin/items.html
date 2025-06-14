@@ -1,0 +1,372 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}商品管理{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>商品管理</h3>
+    <div>
+        <span class="badge bg-primary">总商品数: {{ items.total }}</span>
+    </div>
+</div>
+
+<!-- 筛选器 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label for="status" class="form-label">状态</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">全部状态</option>
+                    <option value="available" {{ 'selected' if request.args.get('status') == 'available' }}>可售</option>
+                    <option value="sold" {{ 'selected' if request.args.get('status') == 'sold' }}>已售</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="category" class="form-label">分类</label>
+                <select class="form-select" id="category" name="category">
+                    <option value="">全部分类</option>
+                    <option value="electronics" {{ 'selected' if request.args.get('category') == 'electronics' }}>电子产品</option>
+                    <option value="books" {{ 'selected' if request.args.get('category') == 'books' }}>图书</option>
+                    <option value="clothing" {{ 'selected' if request.args.get('category') == 'clothing' }}>服装</option>
+                    <option value="sports" {{ 'selected' if request.args.get('category') == 'sports' }}>运动用品</option>
+                    <option value="other" {{ 'selected' if request.args.get('category') == 'other' }}>其他</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="search" class="form-label">搜索</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       placeholder="搜索商品标题或描述" value="{{ request.args.get('search', '') }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">筛选</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 商品列表 -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">商品列表</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>商品图片</th>
+                        <th>商品信息</th>
+                        <th>卖家</th>
+                        <th>价格</th>
+                        <th>状态</th>
+                        <th>发布时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items.items %}
+                    <tr>
+                        <td>{{ item.id }}</td>
+                        <td>
+                            {% if item.image_filename %}
+                                <img src="{{ url_for('static', filename='uploads/' + item.image_filename) }}" 
+                                     alt="商品图片" class="item-thumbnail">
+                            {% else %}
+                                <div class="item-placeholder">
+                                    <i class="fas fa-image text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>
+                                <strong>{{ item.title }}</strong>
+                                <br>
+                                <small class="text-muted">{{ item.category_display }}</small>
+                                {% if item.description %}
+                                    <br>
+                                    <small class="text-muted">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm me-2">
+                                    <div class="avatar-title bg-secondary rounded-circle">
+                                        {{ item.seller.username[0].upper() }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <strong>{{ item.seller.username }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ item.seller.email }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <strong class="text-success">¥{{ "%.2f"|format(item.price) }}</strong>
+                        </td>
+                        <td>
+                            {% if item.is_sold %}
+                                <span class="badge bg-danger">已售</span>
+                            {% else %}
+                                <span class="badge bg-success">可售</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ item.created_at.strftime('%Y-%m-%d %H:%M') if item.created_at else '-' }}</small>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-primary view-item-btn"
+                                        data-item-id="{{ item.id }}" title="查看详情">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-danger delete-item-btn"
+                                        data-item-id="{{ item.id }}"
+                                        data-item-title="{{ item.title }}"
+                                        title="删除商品">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 分页 -->
+{% if items.pages > 1 %}
+<nav aria-label="商品列表分页" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if items.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.manage_items', page=items.prev_num, **request.args) }}">
+                    <i class="fas fa-chevron-left"></i> 上一页
+                </a>
+            </li>
+        {% endif %}
+        
+        {% for page_num in items.iter_pages() %}
+            {% if page_num %}
+                {% if page_num != items.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.manage_items', page=page_num, **request.args) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                {% endif %}
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">…</span>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if items.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.manage_items', page=items.next_num, **request.args) }}">
+                    下一页 <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- 商品详情模态框 -->
+<div class="modal fade" id="itemDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">商品详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="itemDetailContent">
+                <!-- 商品详情内容将通过AJAX加载 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="deleteConfirmMessage"></p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>警告：</strong>删除操作不可恢复，请谨慎操作！
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.item-thumbnail {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.item-placeholder {
+    width: 60px;
+    height: 60px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+}
+
+.avatar-title {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.btn-group .btn {
+    margin-right: 2px;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    let currentItemId = null;
+    
+    // 查看商品详情
+    $('.view-item-btn').click(function() {
+        const itemId = $(this).data('item-id');
+        
+        // 这里可以通过AJAX加载商品详情
+        $('#itemDetailContent').html(`
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+                <p class="mt-2">正在加载商品详情...</p>
+            </div>
+        `);
+        
+        $('#itemDetailModal').modal('show');
+        
+        // 模拟加载商品详情（实际项目中应该通过AJAX从后端获取）
+        setTimeout(function() {
+            $('#itemDetailContent').html(`
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>商品ID</h6>
+                        <p>${itemId}</p>
+                        <h6>详细描述</h6>
+                        <p>这里显示商品的详细描述信息...</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>发布时间</h6>
+                        <p>2024-01-01 12:00:00</p>
+                        <h6>最后更新</h6>
+                        <p>2024-01-01 12:00:00</p>
+                    </div>
+                </div>
+            `);
+        }, 1000);
+    });
+    
+    // 删除商品
+    $('.delete-item-btn').click(function() {
+        currentItemId = $(this).data('item-id');
+        const itemTitle = $(this).data('item-title');
+        
+        $('#deleteConfirmMessage').text(`确定要删除商品 "${itemTitle}" 吗？`);
+        $('#deleteConfirmModal').modal('show');
+    });
+    
+    // 确认删除
+    $('#confirmDeleteBtn').click(function() {
+        if (currentItemId) {
+            $.ajax({
+                url: `/admin/items/${currentItemId}/delete`,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('meta[name=csrf-token]').attr('content')
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showAlert('success', response.message);
+                        // 刷新页面
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        showAlert('danger', response.message || '删除失败');
+                    }
+                },
+                error: function() {
+                    showAlert('danger', '删除失败，请稍后重试');
+                }
+            });
+        }
+        $('#deleteConfirmModal').modal('hide');
+    });
+    
+    // 显示警告消息
+    function showAlert(type, message) {
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        $('.container-fluid .row main').prepend(alertHtml);
+    }
+});
+</script>
+{% endblock %}

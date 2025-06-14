@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ title if title else 'SRTP安全交易平台' }}{% endblock %} - SRTP平台</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome for icons - 使用本地文件 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='libs/fontawesome/all.min.css') }}">
+    
+    <!-- 自定义CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- 页面特定的额外头部内容 -->
+    {% block head_extra %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+        <div class="container">
+            <!-- Logo/品牌名 -->
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <i class="fas fa-shield-alt me-2"></i>
+                SRTP平台
+            </a>
+            
+            <!-- 响应式汉堡菜单按钮 -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <!-- 导航链接 -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'index' }}" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'items.browse_items' }}" href="{{ url_for('items.browse_items') }}">
+                            <i class="fas fa-search me-1"></i>浏览商品
+                        </a>
+                    </li>
+                    
+                    <!-- 用户登录后显示的链接 -->
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'items.post_item' }}" href="{{ url_for('items.post_item') }}">
+                            <i class="fas fa-plus me-1"></i>发布商品
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'items.my_items' }}" href="{{ url_for('items.my_items') }}">
+                            <i class="fas fa-box me-1"></i>我的商品
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'transactions.view_my_transactions' }}" href="{{ url_for('transactions.view_my_transactions') }}">
+                            <i class="fas fa-exchange-alt me-1"></i>我的交易
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'messages.conversations' }}" href="{{ url_for('messages.conversations') }}">
+                            <i class="fas fa-comments me-1"></i>消息
+                            <span class="badge bg-danger rounded-pill ms-1" id="unread-badge" style="display: none;"></span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                
+                <!-- 右侧用户相关链接 -->
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                    <!-- 用户已登录 -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i>
+                            {{ current_user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="{{ url_for('auth.account_settings') }}">账户设置</a>
+                            {% if current_user.is_admin %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i class="fas fa-cog me-2"></i>管理后台</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>登出</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <!-- 用户未登录 -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.login') }}">
+                            <i class="fas fa-sign-in-alt me-1"></i>登录
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.register') }}">
+                            <i class="fas fa-user-plus me-1"></i>注册
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- 主内容区域 -->
+    <main role="main" class="container mt-4 flex-grow-1">
+        <!-- Flash消息显示 -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show fade-in" role="alert">
+                        <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'info-circle' }} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <!-- 页面内容块 -->
+        <div class="fade-in">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    
+    <!-- 页脚 -->
+    <footer class="footer mt-auto py-4 bg-light">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-shield-alt text-primary me-2"></i>
+                        <span class="text-muted">© 2024 校园二手交易平台</span>
+                    </div>
+                </div>
+                <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                    <span class="text-muted">
+                        <i class="fas fa-lock me-1"></i>
+                        基于RSA数字签名技术
+                    </span>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 自定义JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- 页面特定的额外脚本 -->
+    {% block scripts_extra %}{% endblock %}
+    
+    <!-- 未读消息检查脚本 -->
+    <script>
+    // 定期检查未读消息数量
+    if (document.getElementById('unread-badge')) {
+        function checkUnreadMessages() {
+            fetch('/messages/api/unread_count')
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.getElementById('unread-badge');
+                    if (data.unread_count > 0) {
+                        badge.textContent = data.unread_count;
+                        badge.style.display = 'inline';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+        
+        // 页面加载时检查一次
+        checkUnreadMessages();
+        
+        // 每30秒检查一次
+        setInterval(checkUnreadMessages, 30000);
+    }
+    </script>
+</body>
+</html>

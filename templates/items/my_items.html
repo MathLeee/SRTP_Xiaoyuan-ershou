@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- 页面标题和操作区域 -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h2">{{ title }}</h1>
+            <p class="text-muted">管理您发布的所有商品</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('items.post_item') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> 发布新商品
+            </a>
+        </div>
+    </div>
+    
+    <!-- 统计信息 -->
+    {% if items.total > 0 %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h4>{{ items.total }}</h4>
+                            <p class="mb-0">总商品数</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h4>{{ items.items | selectattr('is_sold', 'equalto', true) | list | length }}</h4>
+                            <p class="mb-0">已售出</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h4>{{ items.items | selectattr('is_sold', 'equalto', false) | list | length }}</h4>
+                            <p class="mb-0">在售中</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h4>¥{{ "%.2f"|format(items.items | selectattr('is_sold', 'equalto', true) | map(attribute='price') | sum) }}</h4>
+                            <p class="mb-0">总收入</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 商品列表 -->
+    {% if items.items %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">商品列表</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>商品</th>
+                                    <th>价格</th>
+                                    <th>状态</th>
+                                    <th>发布时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items.items %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if item.image_filename %}
+                                            <img src="{{ url_for('static', filename='uploads/' + item.image_filename) }}" 
+                                                 alt="{{ item.title }}" 
+                                                 class="rounded me-3" 
+                                                 style="width: 60px; height: 60px; object-fit: cover;">
+                                            {% else %}
+                                            <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center" 
+                                                 style="width: 60px; height: 60px;">
+                                                <i class="fas fa-image text-muted"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <h6 class="mb-1">
+                                                    <a href="{{ url_for('items.item_detail', item_id=item.id) }}" 
+                                                       class="text-decoration-none text-dark">
+                                                        {{ item.title }}
+                                                    </a>
+                                                </h6>
+                                                <p class="text-muted small mb-0">
+                                                    {{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <strong class="text-primary">¥{{ "%.2f"|format(item.price) }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if item.is_sold %}
+                                        <span class="badge bg-success">已售出</span>
+                                        {% else %}
+                                        <span class="badge bg-primary">在售中</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ item.created_at.strftime('%Y-%m-%d') }}<br>
+                                            {{ item.created_at.strftime('%H:%M') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('items.item_detail', item_id=item.id) }}" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               title="查看详情">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if not item.is_sold %}
+                                            <a href="{{ url_for('items.edit_item', item_id=item.id) }}" 
+                                               class="btn btn-sm btn-outline-secondary" 
+                                               title="编辑商品">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% endif %}
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-danger" 
+                                                    title="删除商品"
+                                                    onclick="confirmDelete({{ item.id }}, '{{ item.title }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 分页导航 -->
+    {% if items.pages > 1 %}
+    <nav aria-label="商品分页导航" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <!-- 上一页 -->
+            {% if items.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('items.my_items', page=items.prev_num) }}">
+                    <i class="fas fa-chevron-left"></i> 上一页
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">
+                    <i class="fas fa-chevron-left"></i> 上一页
+                </span>
+            </li>
+            {% endif %}
+            
+            <!-- 页码 -->
+            {% for page_num in items.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num != items.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('items.my_items', page=page_num) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">
+                            {{ page_num }}
+                            <span class="sr-only">(当前页)</span>
+                        </span>
+                    </li>
+                    {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">…</span>
+                </li>
+                {% endif %}
+            {% endfor %}
+            
+            <!-- 下一页 -->
+            {% if items.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('items.my_items', page=items.next_num) }}">
+                    下一页 <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">
+                    下一页 <i class="fas fa-chevron-right"></i>
+                </span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    
+    <!-- 分页信息 -->
+    <div class="text-center text-muted mt-2">
+        <small>
+            第 {{ items.page }} 页，共 {{ items.pages }} 页
+            （共 {{ items.total }} 件商品）
+        </small>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <!-- 空状态 - 没有商品时显示 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-box-open fa-5x text-muted"></i>
+                </div>
+                <h3 class="text-muted mb-3">您还没有发布任何商品</h3>
+                <p class="text-muted mb-4">开始发布您的第一个商品，让更多人看到您的宝贝！</p>
+                <a href="{{ url_for('items.post_item') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus"></i> 发布第一个商品
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>您确定要删除商品 <strong id="deleteItemTitle"></strong> 吗？</p>
+                <p class="text-muted small">此操作不可撤销。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}"/>
+                    <button type="submit" class="btn btn-danger">确认删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head_extra %}
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 删除确认功能
+function confirmDelete(itemId, itemTitle) {
+    document.getElementById('deleteItemTitle').textContent = itemTitle;
+    document.getElementById('deleteForm').action = `/items/item/${itemId}/delete`;
+    
+    // 显示模态框
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
+
+// 表格行悬停效果
+document.addEventListener('DOMContentLoaded', function() {
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f8f9fa';
+        });
+        row.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+});
+
+// 自动隐藏成功消息
+setTimeout(function() {
+    const alerts = document.querySelectorAll('.alert-success');
+    alerts.forEach(alert => {
+        alert.style.transition = 'opacity 0.5s';
+        alert.style.opacity = '0';
+        setTimeout(() => alert.remove(), 500);
+    });
+}, 3000);
+</script>
+{% endblock %}
